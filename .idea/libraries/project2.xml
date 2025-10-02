@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="project2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/project2/scheduler_v0.zip!/" />
+      <root url="jar://$PROJECT_DIR$/project2/scheduler_v0 2.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

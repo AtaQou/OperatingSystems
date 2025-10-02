@@ -1,0 +1,85 @@
+process 42328 begins
+process 42328 ends
+process 42329 begins
+process 42329 ends
+process 42330 begins
+process 42330 ends
+process 42327 begins
+process 42327 ends
+[DEBUG] Processor 3 sent READY signal.
+[DEBUG] Processor 3 received process ../work/work7 (requires 1 processors).
+	Processor 3 completed process ../work/work7.
+	Execution time = 82.78 secs
+	Elapsed time = 82.78 secs
+	Workload time = 82.78 secs
+[DEBUG] Processor 3 sent DONE signal.
+[DEBUG] Processor 3 received acknowledgment from parent.
+[DEBUG] Processor 3 sent READY signal.
+[DEBUG] Processor 3 received no more processes. Exiting.
+[DEBUG] Processor 2 sent READY signal.
+[DEBUG] Processor 2 received process ../work/work7 (requires 1 processors).
+	Processor 2 completed process ../work/work7.
+	Execution time = 82.60 secs
+	Elapsed time = 82.60 secs
+	Workload time = 82.60 secs
+[DEBUG] Processor 2 sent DONE signal.
+[DEBUG] Processor 2 received acknowledgment from parent.
+[DEBUG] Processor 2 sent READY signal.
+[DEBUG] Processor 2 received no more processes. Exiting.
+[DEBUG] Processor 1 sent READY signal.
+[DEBUG] Processor 1 received process ../work/work7 (requires 1 processors).
+	Processor 1 completed process ../work/work7.
+	Execution time = 82.41 secs
+	Elapsed time = 82.41 secs
+	Workload time = 82.41 secs
+[DEBUG] Processor 1 sent DONE signal.
+[DEBUG] Processor 1 received acknowledgment from parent.
+[DEBUG] Processor 1 sent READY signal.
+[DEBUG] Processor 1 received no more processes. Exiting.
+process 42380 begins
+process 42380 ends
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received process ../work/work7 (requires 1 processors).
+	Processor 0 completed process ../work/work7.
+	Execution time = 82.25 secs
+	Elapsed time = 82.25 secs
+	Workload time = 82.25 secs
+[DEBUG] Processor 0 sent DONE signal.
+[DEBUG] Processor 0 received acknowledgment from parent.
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received process ../work/work7 (requires 1 processors).
+	Processor 0 completed process ../work/work7.
+	Execution time = 33.49 secs
+	Elapsed time = 115.74 secs
+	Workload time = 115.74 secs
+[DEBUG] Processor 0 sent DONE signal.
+[DEBUG] Processor 0 received acknowledgment from parent.
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received no more processes. Exiting.
+[DEBUG] Processor 0 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 0. Available processors: 3
+[DEBUG] Processor 1 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 1. Available processors: 2
+[DEBUG] Processor 2 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 2. Available processors: 1
+[DEBUG] Processor 3 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 3. Available processors: 0
+[DEBUG] Processor 0 completed a task. Available processors: 1
+[DEBUG] Parent sent acknowledgment to processor 0.
+[DEBUG] Processor 0 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 0. Available processors: 0
+[DEBUG] Processor 1 completed a task. Available processors: 1
+[DEBUG] Parent sent acknowledgment to processor 1.
+[DEBUG] Processor 1 is ready.
+[DEBUG] Processor 2 completed a task. Available processors: 2
+[DEBUG] Parent sent acknowledgment to processor 2.
+[DEBUG] Processor 2 is ready.
+[DEBUG] Processor 3 completed a task. Available processors: 3
+[DEBUG] Parent sent acknowledgment to processor 3.
+[DEBUG] Processor 3 is ready.
+[DEBUG] Processor 0 completed a task. Available processors: 4
+[DEBUG] Parent sent acknowledgment to processor 0.
+[DEBUG] Processor 0 is ready.
+All processors finished execution.
+WORKLOAD TIME: 115.74 secs
+Scheduler exits.

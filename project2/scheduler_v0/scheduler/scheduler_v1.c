@@ -1,0 +1,605 @@
+/* Αντωνίου Σωτήριος, 1067512 */
+/* Κωνσταντίνος Χριστάκος, 1070903 */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <time.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#define MAX_LINE_LENGTH 80
+
+void fcfs();
+void rr();
+void rr_aff();
+
+#define PROC_NEW	0
+#define PROC_STOPPED	1
+#define PROC_RUNNING	2
+#define PROC_EXITED	3
+#define NUM_PROCESSORS 4  // Number of processors
+
+typedef struct proc_desc {
+	struct proc_desc *next;
+	char name[80];
+	int pid;
+	int status;
+	double t_submission, t_start, t_end;
+    int processors_required;
+    int working_processor;
+} proc_t;
+
+int processors[NUM_PROCESSORS];
+int haswork[NUM_PROCESSORS] = {0}; 
+
+struct single_queue {
+	proc_t	*first;
+	proc_t	*last;
+	long members;
+};
+
+struct single_queue global_q;
+
+#define proc_queue_empty(q) ((q)->first==NULL)
+
+void proc_queue_init (register struct single_queue * q)
+{
+	q->first = q->last = NULL;
+	q->members = 0;
+}
+
+void proc_to_rq (register proc_t *proc)
+{
+	if (proc_queue_empty (&global_q))
+		global_q.last = proc;
+	proc->next = global_q.first;
+	global_q.first = proc;
+}
+
+void proc_to_rq_end (register proc_t *proc)
+{
+	if (proc_queue_empty (&global_q))
+		global_q.first = global_q.last = proc;
+	else {
+		global_q.last->next = proc;
+		global_q.last = proc;
+		proc->next = NULL;
+	}
+}
+
+proc_t *proc_rq_dequeue ()
+{
+	register proc_t *proc;
+
+	proc = global_q.first;
+	if (proc==NULL) return NULL;
+
+	proc = global_q.first;
+	if (proc!=NULL) {
+		global_q.first = proc->next;
+		proc->next = NULL;
+	}
+
+	return proc;
+}
+
+
+void print_queue()
+{
+	proc_t *proc;
+
+	proc = global_q.first;
+	while (proc != NULL) {
+		printf("proc: [name:%s pid:%d]\n", 
+			proc->name, proc->pid);
+		proc = proc->next;
+	}
+}
+
+double proc_gettime()
+{
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	return (double) (tv.tv_sec+tv.tv_usec/1000000.0);
+}
+
+#define FCFS	0
+#define RR		1
+#define RR_AFF  2 
+
+int policy = FCFS;
+int quantum = 100;	/* ms */
+proc_t *running_processes[NUM_PROCESSORS];
+int pid_to_processor[NUM_PROCESSORS]; // Maps pids to processor indices
+double global_t;
+
+void err_exit(char *msg)
+{
+	printf("Error: %s\n", msg);
+	exit(1);
+}
+
+int main(int argc, char **argv) {
+    FILE *input;
+    char exec[80];
+    int c;
+    proc_t *proc;
+
+    if (argc == 1) {
+        err_exit("Invalid usage. Provide policy and input file.");
+    } else if (argc == 2) {
+        input = fopen(argv[1], "r");
+        if (input == NULL) err_exit("Invalid input file name");
+    } else if (argc > 2) {
+        if (!strcmp(argv[1], "FCFS")) {
+            policy = FCFS;
+            input = fopen(argv[2], "r");
+            if (input == NULL) err_exit("Invalid input file name");
+        } else if (!strcmp(argv[1], "RR")) {
+            policy = RR;
+            quantum = atoi(argv[2]);
+            input = fopen(argv[3], "r");
+            if (input == NULL) err_exit("Invalid input file name");
+        } else if (!strcmp(argv[1], "RR-AFF")) {
+            policy = RR_AFF;
+            quantum = atoi(argv[2]);
+            input = fopen(argv[3], "r");
+            if (input == NULL) err_exit("Invalid input file name");
+        } else {
+            err_exit("Invalid usage. Use 'FCFS', 'RR', or 'RR-AFF'.");
+        }
+    }
+
+    // Read the input file
+    while (fscanf(input, "%s", exec) != EOF) {
+        proc = malloc(sizeof(proc_t));
+        proc->next = NULL;
+
+        int processors_required = 1; // Default to 1 processor
+
+        // Check if there's a number after the process name
+        c = fscanf(input, "%d", &processors_required);
+        if (c != 1) {
+            // No number found, the default of 1 processor is already set
+            fseek(input, -1, SEEK_CUR); // Rewind to the start of the line to capture next process name
+        }
+
+        proc->processors_required = processors_required;
+        strcpy(proc->name, exec);
+        proc->pid = -1;
+        proc->status = PROC_NEW;
+        proc->t_submission = proc_gettime();
+
+        if (processors_required > NUM_PROCESSORS) {
+            printf("Error: Process %s requires %d processors, but only %d are available. Skipping.\n",
+                   proc->name, processors_required, NUM_PROCESSORS);
+            free(proc); // Clean up memory
+        } else {
+            proc_to_rq_end(proc); // Add to the queue
+        }
+    }
+
+    fclose(input); // Close the file after reading
+
+    // Record global time
+    global_t = proc_gettime();
+
+    // Process scheduling based on the chosen policy
+    switch (policy) {
+        case FCFS:
+            fcfs();
+            break;
+
+        case RR:
+            rr();
+            break;
+
+        case RR_AFF:
+            rr_aff();
+            break;
+
+        default:
+            err_exit("Unimplemented policy");
+            break;
+    }
+
+    // Output the workload time
+    printf("WORKLOAD TIME: %.2lf secs\n", proc_gettime() - global_t);
+    printf("Scheduler exits.\n");
+
+    return 0;
+}
+
+void process_child(int processor_id, int read_fd, int write_fd) {
+    proc_t proc;
+
+    while (1) {
+        // Notify parent that this processor is ready
+        write(write_fd, "READY", 5);
+        printf("[DEBUG] Processor %d sent READY signal.\n", processor_id);
+
+        // Wait for a process
+        if (read(read_fd, &proc, sizeof(proc_t)) <= 0) {
+            printf("[DEBUG] Processor %d received no more processes. Exiting.\n", processor_id);
+            break; // Exit if no process is available
+        }
+
+        printf("[DEBUG] Processor %d received process %s (requires %d processors).\n", 
+               processor_id, proc.name, proc.processors_required);
+
+        proc.t_start = proc_gettime();
+
+        // Execute the process
+        int pid = fork();
+        if (pid == 0) {
+            printf("[DEBUG] Processor %d starting execution of %s.\n", processor_id, proc.name);
+            execl(proc.name, proc.name, NULL);
+            perror("execl failed");
+            exit(1);
+        }
+        waitpid(pid, NULL, 0);
+        proc.t_end = proc_gettime();
+
+        printf("\tProcessor %d completed process %s.\n", processor_id, proc.name);
+        printf("\tExecution time = %.2lf secs\n", proc.t_end - proc.t_start);
+        printf("\tElapsed time = %.2lf secs\n", proc.t_end - proc.t_submission);
+        printf("\tWorkload time = %.2lf secs\n", proc.t_end - global_t);
+
+        // Notify parent that this processor has completed its task
+        write(write_fd, "DONE", 4);
+        printf("[DEBUG] Processor %d sent DONE signal.\n", processor_id);
+
+        // Wait for acknowledgment from the parent
+        char ack;
+        if (read(read_fd, &ack, 1) > 0) {
+            printf("[DEBUG] Processor %d received acknowledgment from parent.\n", processor_id);
+        } else {
+            printf("[DEBUG] Processor %d failed to receive acknowledgment.\n", processor_id);
+        }
+    }
+    exit(0);
+}
+
+void fcfs() {
+    int pipes[NUM_PROCESSORS][2];
+    int feedback_pipes[NUM_PROCESSORS][2];
+    pid_t processors[NUM_PROCESSORS];
+    int processor_ready[NUM_PROCESSORS] = {0}; // Track readiness of each processor
+
+    int available_processors = NUM_PROCESSORS;
+
+    // Create pipes and fork processors
+    for (int i = 0; i < NUM_PROCESSORS; i++) {
+        if (pipe(pipes[i]) < 0 || pipe(feedback_pipes[i]) < 0) {
+            err_exit("Pipe creation failed!");
+        }
+        processors[i] = fork();
+        if (processors[i] == 0) {
+            close(pipes[i][1]); // Close write end in child
+            close(feedback_pipes[i][0]); // Close read end in child
+            process_child(i, pipes[i][0], feedback_pipes[i][1]);
+        } else if (processors[i] > 0) {
+            close(pipes[i][0]); // Close read end in parent
+            close(feedback_pipes[i][1]); // Close write end in parent
+
+            fcntl(feedback_pipes[i][0], F_SETFL, O_NONBLOCK); // Non-blocking feedback
+        } else {
+            err_exit("Failed to create processor!");
+        }
+    }
+
+    proc_t *proc;
+    int active_processors = NUM_PROCESSORS;
+    int proc_needed[NUM_PROCESSORS];
+
+    while (active_processors > 0) {
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            char feedback[6] = {0};
+
+            // Read feedback from the child process
+            if (read(feedback_pipes[i][0], feedback, 5) > 0) {
+                if (strcmp(feedback, "DONE") == 0) {
+                    // Processor finished a task
+                    available_processors += proc_needed[i];
+                    printf("[DEBUG] Processor %d completed a task. Available processors: %d\n", 
+                           i, available_processors);
+
+                    // Send acknowledgment to the child
+                    char ack = '1';
+                    write(pipes[i][1], &ack, 1);
+                    printf("[DEBUG] Parent sent acknowledgment to processor %d.\n", i);
+                } else if (strcmp(feedback, "READY") == 0) {
+                    // Processor is ready for a new task
+                    processor_ready[i] = 1;
+                    printf("[DEBUG] Processor %d is ready.\n", i);
+                }
+            }
+
+            // Assign a new task if the processor is ready
+            if (available_processors > 0) {
+            if (processor_ready[i]) {
+                if (!proc_queue_empty(&global_q)) {
+                    proc = proc_rq_dequeue();
+
+                    if (proc->processors_required <= available_processors) {
+                        available_processors -= proc->processors_required;
+                        proc_needed[i] = proc->processors_required;
+                        printf("[DEBUG] Assigning process %s to processor %d. Available processors: %d\n",
+                               proc->name, i, available_processors);
+                        write(pipes[i][1], proc, sizeof(proc_t));
+                        processor_ready[i] = 0; // Mark as busy
+                    } else {
+                        proc_to_rq_end(proc);
+                    }
+                } else {
+                    // No more tasks, close processor pipe
+                    close(pipes[i][1]);
+                    active_processors--;
+                    processor_ready[i] = 0;
+                }
+            }
+        }
+    }
+    }
+
+    // Wait for all processors to terminate
+    for (int i = 0; i < NUM_PROCESSORS; i++) {
+        waitpid(processors[i], NULL, 0);
+    }
+
+    printf("All processors finished execution.\n");
+}
+
+void sigchld_handler(int signo, siginfo_t *info, void *context) {
+    pid_t exited_pid = info->si_pid; // PID of the child process that exited
+    int exit_status = info->si_status; // Exit status from child
+    int signal_code = info->si_code; // Reason for the signal (e.g., CLD_EXITED)
+
+    printf("SIGCHLD received for PID %d\n", exited_pid);
+
+    // Find the processor index for the exited process
+    int processor_index = -1;
+    for (int i = 0; i < NUM_PROCESSORS; i++) {
+        if (running_processes[i] != NULL && running_processes[i]->pid == exited_pid) {
+            processor_index = i;
+            haswork[i]--;
+            printf("processor %d has %d processes\n",i , haswork[i]);
+            break;
+        }
+    }
+
+    if (processor_index == -1) {
+        printf("Warning: Could not find processor for PID %d\n", exited_pid);
+        return;
+    }
+
+    proc_t *proc = running_processes[processor_index];
+    if (proc) {
+        proc->status = PROC_EXITED;
+        proc->t_end = proc_gettime();
+        printf("Processor %d - PID %d - CMD: %s\n", processor_index, proc->pid, proc->name);
+        printf("\tElapsed time = %.2lf secs\n", proc->t_end - proc->t_submission);
+        printf("\tExecution time = %.2lf secs\n", proc->t_end - proc->t_start);
+        printf("\tWorkload time = %.2lf secs\n", proc->t_end - global_t);
+
+        running_processes[processor_index] = NULL; // Free the processor slot
+    } else {
+        printf("Warning: No running process found for processor %d\n", processor_index);
+    }
+}
+
+void rr() {
+    struct sigaction sig_act;
+    proc_t *proc;
+    int pid;
+    struct timespec req, rem;
+    int available_processors = NUM_PROCESSORS;
+
+    // Quantum setup for sleep
+    req.tv_sec = quantum / 1000;
+    req.tv_nsec = (quantum % 1000) * 1000000;
+
+    // Signal handler setup
+    sigemptyset(&sig_act.sa_mask);
+    sig_act.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
+    sig_act.sa_sigaction = sigchld_handler;
+    sigaction(SIGCHLD, &sig_act, NULL);
+
+    // Initialize running processes
+    for (int i = 0; i < NUM_PROCESSORS; i++) {
+        running_processes[i] = NULL;
+    }
+
+    while (1) {
+        // Distribute processes to processors
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] == NULL || running_processes[i]->status == PROC_EXITED) {
+                // Get the next process from the queue
+                proc = proc_rq_dequeue();
+                if (proc == NULL) continue;  // No more processes in the queue
+                if (proc->processors_required <= available_processors) {
+
+                if (proc->status == PROC_NEW) {
+                    // Start a new process
+                    running_processes[i] = proc;
+                    proc->status = PROC_RUNNING;
+                    available_processors--;
+
+                    pid = fork();
+                    if (pid == -1) {
+                        err_exit("fork failed!");
+                    }
+                    if (pid == 0) {
+                        // Child process
+                        printf("Processor %d executing %s\n", i, proc->name);
+                        execl(proc->name, proc->name, NULL);
+                    } else {
+                        // Parent process
+                        proc->pid = pid;
+                        proc->t_start = proc_gettime();
+                    }
+                } else if (proc->status == PROC_STOPPED) {
+                    // Resume a stopped process
+                    running_processes[i] = proc;
+                    proc->status = PROC_RUNNING;
+
+                    printf("Processor %d resuming %s (PID: %d)\n", i, proc->name, proc->pid);
+                    kill(proc->pid, SIGCONT);
+                }
+            } else {
+                proc_to_rq_end(proc);
+                i--;
+            }
+        }
+    }
+        // Sleep for the quantum
+        nanosleep(&req, &rem);
+
+        // Check the status of each processor's process
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] != NULL && running_processes[i]->status == PROC_RUNNING) {
+                // Check if the process has exited
+                int status;
+                available_processors++;
+                pid_t result = waitpid(running_processes[i]->pid, &status, WNOHANG);
+                if (result > 0) {
+                    // Process has exited
+                    running_processes[i]->status = PROC_EXITED;
+                } else {
+                    // Process is still running, stop it and requeue
+                    printf("Processor %d stopping %s (PID: %d)\n", i, running_processes[i]->name, running_processes[i]->pid);
+                    kill(running_processes[i]->pid, SIGSTOP);
+                    running_processes[i]->status = PROC_STOPPED;
+                    proc_to_rq_end(running_processes[i]);
+                    running_processes[i] = NULL;
+                }
+            }
+        }
+
+        // Check if all processes are done
+        int all_done = 1;
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] != NULL) {
+                all_done = 0;
+                break;
+            }
+        }
+        if (all_done && proc_queue_empty(&global_q)) {
+            break;
+        }
+    }
+}
+
+void rr_aff() {
+    struct sigaction sig_act;
+    proc_t *proc;
+    int pid;
+    struct timespec req, rem;
+
+    // Quantum setup for sleep
+    req.tv_sec = quantum / 1000;
+    req.tv_nsec = (quantum % 1000) * 1000000;
+
+    // Signal handler setup
+    sigemptyset(&sig_act.sa_mask);
+    sig_act.sa_flags = SA_SIGINFO | SA_NOCLDSTOP;
+    sig_act.sa_sigaction = sigchld_handler;
+    sigaction(SIGCHLD, &sig_act, NULL);
+
+    // Initialize running processes
+    for (int i = 0; i < NUM_PROCESSORS; i++) {
+        running_processes[i] = NULL;
+         haswork[i] = 0;
+    }
+
+    while (1) {
+        // Distribute processes to processors
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] == NULL || running_processes[i]->status == PROC_EXITED) {
+                // Get the next process from the queue
+                proc = proc_rq_dequeue();
+                if (proc == NULL) continue;  // No more processes in the queue
+
+                if (proc->status == PROC_NEW) {
+                    // Start a new process
+                    running_processes[i] = proc;
+                    proc->status = PROC_RUNNING;
+                    proc->working_processor = i;  // Set the processor that started the process
+                    haswork[i]++;
+                    printf ("processor %d has %d processes\n", i, haswork[i]);
+
+                    pid = fork();
+                    if (pid == -1) {
+                        err_exit("fork failed!");
+                    }
+                    if (pid == 0) {
+                        // Child process
+                        printf("Processor %d executing %s\n", i, proc->name);
+                        execl(proc->name, proc->name, NULL);
+                    } else {
+                        // Parent process
+                        proc->pid = pid;
+                        proc->t_start = proc_gettime();
+                    }
+                } else if (proc->status == PROC_STOPPED) {
+                    if (haswork[i] > 0) {
+                if (proc->working_processor == i) {
+                // Processor i can resume the process
+                running_processes[i] = proc;
+                proc->status = PROC_RUNNING;
+                printf("Processor %d resuming %s (PID: %d)\n", i, proc->name, proc->pid);
+                kill(proc->pid, SIGCONT);
+            } else {
+                // Processor i cannot resume this process, put it back in the queue
+                proc_to_rq_end(proc);
+                i--; // Retry with the same processor
+                    }
+                }
+                else {
+                    proc_to_rq(proc);
+                }
+            }
+        }
+    }
+
+
+        // Sleep for the quantum
+        nanosleep(&req, &rem);
+
+        // Check the status of each processor's process
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] != NULL && running_processes[i]->status == PROC_RUNNING) {
+                // Check if the process has exited
+                int status;
+                pid_t result = waitpid(running_processes[i]->pid, &status, WNOHANG);
+                if (result > 0) {
+                    running_processes[i]->status = PROC_EXITED;
+                } else {
+                    // Process is still running, stop it and requeue
+                    printf("Processor %d stopping %s (PID: %d)\n", i, running_processes[i]->name, running_processes[i]->pid);
+                    kill(running_processes[i]->pid, SIGSTOP);
+                    running_processes[i]->status = PROC_STOPPED;
+                    proc_to_rq_end(running_processes[i]);
+                    running_processes[i] = NULL;
+                }
+            }
+        }
+
+        // Check if all processes are done
+        int all_done = 1;
+        for (int i = 0; i < NUM_PROCESSORS; i++) {
+            if (running_processes[i] != NULL) {
+                all_done = 0;
+                break;
+            }
+        }
+        if (all_done && proc_queue_empty(&global_q)) {
+            break;
+        }
+    }
+}

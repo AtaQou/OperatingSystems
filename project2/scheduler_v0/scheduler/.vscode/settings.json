@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "signal.h": "c",
+        "swsto": "cpp",
+        "span": "cpp",
+        "chrono": "cpp"
+    }
+}

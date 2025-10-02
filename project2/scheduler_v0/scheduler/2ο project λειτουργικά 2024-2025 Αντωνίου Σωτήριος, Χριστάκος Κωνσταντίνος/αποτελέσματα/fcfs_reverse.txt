@@ -1,0 +1,104 @@
+process 42420 begins
+process 42420 ends
+process 42419 begins
+process 42419 ends
+process 42447 begins
+process 42447 ends
+process 42442 begins
+process 42442 ends
+process 42443 begins
+process 42443 ends
+process 42450 begins
+process 42450 ends
+Error: Process ../work/work6 requires 7 processors, but only 4 are available. Skipping.
+[DEBUG] Processor 3 sent READY signal.
+[DEBUG] Processor 3 received process ../work/work3 (requires 1 processors).
+	Processor 3 completed process ../work/work3.
+	Execution time = 24.21 secs
+	Elapsed time = 64.62 secs
+	Workload time = 64.62 secs
+[DEBUG] Processor 3 sent DONE signal.
+[DEBUG] Processor 3 received acknowledgment from parent.
+[DEBUG] Processor 3 sent READY signal.
+[DEBUG] Processor 3 received process ../work/work2 (requires 3 processors).
+	Processor 3 completed process ../work/work2.
+	Execution time = 11.33 secs
+	Elapsed time = 81.14 secs
+	Workload time = 81.14 secs
+[DEBUG] Processor 3 sent DONE signal.
+[DEBUG] Processor 3 received acknowledgment from parent.
+[DEBUG] Processor 3 sent READY signal.
+[DEBUG] Processor 3 received no more processes. Exiting.
+Error: Process ../work/work6 requires 7 processors, but only 4 are available. Skipping.
+[DEBUG] Processor 2 sent READY signal.
+[DEBUG] Processor 2 received process ../work/work4 (requires 2 processors).
+	Processor 2 completed process ../work/work4.
+	Execution time = 29.40 secs
+	Elapsed time = 69.80 secs
+	Workload time = 69.80 secs
+[DEBUG] Processor 2 sent DONE signal.
+[DEBUG] Processor 2 received acknowledgment from parent.
+[DEBUG] Processor 2 sent READY signal.
+[DEBUG] Processor 2 received no more processes. Exiting.
+Error: Process ../work/work6 requires 7 processors, but only 4 are available. Skipping.
+[DEBUG] Processor 1 sent READY signal.
+[DEBUG] Processor 1 received process ../work/work5 (requires 3 processors).
+	Processor 1 completed process ../work/work5.
+	Execution time = 40.40 secs
+	Elapsed time = 40.41 secs
+	Workload time = 40.41 secs
+[DEBUG] Processor 1 sent DONE signal.
+[DEBUG] Processor 1 received acknowledgment from parent.
+[DEBUG] Processor 1 sent READY signal.
+[DEBUG] Processor 1 received no more processes. Exiting.
+Error: Process ../work/work6 requires 7 processors, but only 4 are available. Skipping.
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received process ../work/work7 (requires 1 processors).
+	Processor 0 completed process ../work/work7.
+	Execution time = 55.25 secs
+	Elapsed time = 55.25 secs
+	Workload time = 55.25 secs
+[DEBUG] Processor 0 sent DONE signal.
+[DEBUG] Processor 0 received acknowledgment from parent.
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received process ../work/work1 (requires 1 processors).
+	Processor 0 completed process ../work/work1.
+	Execution time = 8.82 secs
+	Elapsed time = 64.07 secs
+	Workload time = 64.07 secs
+[DEBUG] Processor 0 sent DONE signal.
+[DEBUG] Processor 0 received acknowledgment from parent.
+[DEBUG] Processor 0 sent READY signal.
+[DEBUG] Processor 0 received no more processes. Exiting.
+Error: Process ../work/work6 requires 7 processors, but only 4 are available. Skipping.
+[DEBUG] Processor 0 is ready.
+[DEBUG] Assigning process ../work/work7 to processor 0. Available processors: 3
+[DEBUG] Processor 1 is ready.
+[DEBUG] Assigning process ../work/work5 to processor 1. Available processors: 0
+[DEBUG] Processor 2 is ready.
+[DEBUG] Processor 3 is ready.
+[DEBUG] Processor 1 completed a task. Available processors: 3
+[DEBUG] Parent sent acknowledgment to processor 1.
+[DEBUG] Assigning process ../work/work4 to processor 2. Available processors: 1
+[DEBUG] Assigning process ../work/work3 to processor 3. Available processors: 0
+[DEBUG] Processor 1 is ready.
+[DEBUG] Processor 0 completed a task. Available processors: 1
+[DEBUG] Parent sent acknowledgment to processor 0.
+[DEBUG] Processor 0 is ready.
+[DEBUG] Assigning process ../work/work1 to processor 0. Available processors: 0
+[DEBUG] Processor 0 completed a task. Available processors: 1
+[DEBUG] Parent sent acknowledgment to processor 0.
+[DEBUG] Processor 0 is ready.
+[DEBUG] Processor 3 completed a task. Available processors: 2
+[DEBUG] Parent sent acknowledgment to processor 3.
+[DEBUG] Processor 3 is ready.
+[DEBUG] Processor 2 completed a task. Available processors: 4
+[DEBUG] Parent sent acknowledgment to processor 2.
+[DEBUG] Assigning process ../work/work2 to processor 3. Available processors: 1
+[DEBUG] Processor 2 is ready.
+[DEBUG] Processor 3 completed a task. Available processors: 4
+[DEBUG] Parent sent acknowledgment to processor 3.
+[DEBUG] Processor 3 is ready.
+All processors finished execution.
+WORKLOAD TIME: 81.14 secs
+Scheduler exits.

@@ -1,0 +1,221 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <time.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#define MAX_LINE_LENGTH 80
+#define MAX_PROCESSORS 4 // Αριθμός επεξεργαστών
+
+void fcfs(int num_processors);
+void process_child(int processor_id, int read_fd, int write_fd);
+
+#define PROC_NEW       0
+#define PROC_STOPPED   1
+#define PROC_RUNNING   2
+#define PROC_EXITED    3
+
+typedef struct proc_desc {
+    struct proc_desc *next;
+    char name[80];
+    int pid;
+    int status;
+    double t_submission, t_start, t_end;
+} proc_t;
+
+struct single_queue {
+    proc_t *first;
+    proc_t *last;
+    long members;
+};
+
+struct single_queue global_q;
+
+#define proc_queue_empty(q) ((q)->first == NULL)
+
+void proc_queue_init(register struct single_queue *q) {
+    q->first = q->last = NULL;
+    q->members = 0;
+}
+
+void proc_to_rq_end(register proc_t *proc) {
+    if (proc_queue_empty(&global_q))
+        global_q.first = global_q.last = proc;
+    else {
+        global_q.last->next = proc;
+        global_q.last = proc;
+        proc->next = NULL;
+    }
+}
+
+proc_t *proc_rq_dequeue() {
+    register proc_t *proc;
+    proc = global_q.first;
+    if (proc == NULL) return NULL;
+
+    global_q.first = proc->next;
+    proc->next = NULL;
+    return proc;
+}
+
+double proc_gettime() {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (double)(tv.tv_sec + tv.tv_usec / 1000000.0);
+}
+
+#define FCFS    0
+
+int policy = FCFS;
+double global_t;
+
+void err_exit(char *msg) {
+    printf("Error: %s\n", msg);
+    exit(1);
+}
+
+void process_child(int processor_id, int read_fd, int write_fd) {
+    proc_t proc;
+    while (1) {
+        // Ζητάει εργασία από τον γονέα
+        write(write_fd, "READY", 5);
+
+        // Περιμένει εργασία
+        if (read(read_fd, &proc, sizeof(proc_t)) <= 0) break; // Δεν υπάρχουν άλλες διεργασίες
+
+        printf("Processor %d executing %s\n", processor_id, proc.name);
+        proc.t_start = proc_gettime();
+
+        // Εκτέλεση διεργασίας
+        int pid = fork();
+        if (pid == 0) {
+            execl(proc.name, proc.name, NULL);
+            exit(0);
+        }
+        waitpid(pid, NULL, 0);
+        proc.t_end = proc_gettime();
+
+        printf("Processor %d completed %s\n", processor_id, proc.name);
+        printf("\tExecution time = %.2lf secs\n", proc.t_end - proc.t_start); // Χρόνος εκτέλεσης της διεργασίας
+        printf("\tElapsed time = %.2lf secs\n", proc.t_end - proc.t_submission); // Χρόνος από την υποβολή μέχρι την ολοκλήρωση
+        printf("\tWorkload time = %.2lf secs\n", proc.t_end - global_t); // Συνολικός χρόνος από την αρχή του προγράμματος
+    }
+    exit(0);
+}
+
+void fcfs(int num_processors) {
+    int pipes[MAX_PROCESSORS][2];
+    int feedback_pipes[MAX_PROCESSORS][2];
+    pid_t processors[MAX_PROCESSORS];
+
+    // Δημιουργία pipes και fork processors
+    for (int i = 0; i < num_processors; i++) {
+        if (pipe(pipes[i]) < 0 || pipe(feedback_pipes[i]) < 0) {
+            err_exit("Pipe creation failed!");
+        }
+        processors[i] = fork();
+        if (processors[i] == 0) {
+            close(pipes[i][1]); // Close write end in child
+            close(feedback_pipes[i][0]); // Close read end in child
+            process_child(i, pipes[i][0], feedback_pipes[i][1]);
+        } else if (processors[i] > 0) {
+            close(pipes[i][0]); // Close read end in parent
+            close(feedback_pipes[i][1]); // Close write end in parent
+
+            // Μη μπλοκαριστικά pipes
+            fcntl(feedback_pipes[i][0], F_SETFL, O_NONBLOCK);
+        } else {
+            err_exit("Failed to create processor!");
+        }
+    }
+
+    // Διαχείριση διεργασιών από τον γονέα
+    proc_t *proc;
+    int active_processors = num_processors;
+
+    while (active_processors > 0) {
+        for (int i = 0; i < num_processors; i++) {
+            char feedback[6] = {0};
+
+            // Ελέγχει αν ο επεξεργαστής ζητά εργασία
+            if (read(feedback_pipes[i][0], feedback, 5) > 0 && strcmp(feedback, "READY") == 0) {
+                if (!proc_queue_empty(&global_q)) {
+                    proc = proc_rq_dequeue();
+                    write(pipes[i][1], proc, sizeof(proc_t));
+                } else {
+                    // Δεν υπάρχουν άλλες διεργασίες, στέλνουμε σήμα τερματισμού
+                    close(pipes[i][1]);
+                    active_processors--;
+                }
+            }
+        }
+    }
+
+    // Αναμονή τερματισμού επεξεργαστών
+    for (int i = 0; i < num_processors; i++) {
+        waitpid(processors[i], NULL, 0);
+    }
+
+    printf("All processors finished execution.\n");
+}
+
+int main(int argc, char **argv) {
+    FILE *input;
+    char exec[80];
+    proc_t *proc;
+
+    if (argc < 3) {
+        err_exit("Invalid usage. Provide policy, number of processors, and input file.");
+    }
+
+    int num_processors = atoi(argv[2]);
+    if (num_processors <= 0 || num_processors > MAX_PROCESSORS) {
+        err_exit("Invalid number of processors.");
+    }
+
+    input = fopen(argv[3], "r");
+    if (input == NULL) err_exit("Invalid input file name");
+
+    proc_queue_init(&global_q);
+
+    /* Read input file */
+    while (fscanf(input, "%s", exec) != EOF) {
+        proc = malloc(sizeof(proc_t));
+        proc->next = NULL;
+
+        // Διαβάζουμε και τον αριθμό (αν υπάρχει) μετά το όνομα της διεργασίας
+        int num;
+        if (fscanf(input, "%d", &num) == 1) {
+            // Αν υπάρχει αριθμός, τον αγνοούμε
+        } else {
+            // Αν δεν υπάρχει αριθμός, επανέρχεται η fseek για να διαβάσει το επόμενο όνομα
+            fseek(input, -1, SEEK_CUR); 
+        }
+
+        // Αντιγραφή του ονόματος της διεργασίας στη δομή
+        strcpy(proc->name, exec);
+        proc->pid = -1;
+        proc->status = PROC_NEW;
+        proc->t_submission = proc_gettime();
+
+        proc_to_rq_end(proc);  // Προσθήκη της διεργασίας στην ουρά
+    }
+    fclose(input);
+
+    global_t = proc_gettime();
+    if (policy == FCFS) {
+        fcfs(num_processors);
+    } else {
+        err_exit("Only FCFS is implemented.");
+    }
+
+    printf("WORKLOAD TIME: %.2lf secs\n", proc_gettime() - global_t);
+    printf("Scheduler exits.\n");
+    return 0;
+}
+
