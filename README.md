@@ -10,42 +10,46 @@ Konstantinos Christakos (1070903)
 PROJECT1/
 ├── erwthma1/      → Shell scripting exercise (Passenger management)
 ├── erwthma2/      → Process synchronization using semaphores
-├── erwthma3/      → Process scheduling & memory management simulation
+├── erwthma3/      → CPU scheduling & memory management simulation
 └── launch1.c      → Launcher helper file for testing
 
-project2/
+PROJECT2/
 └── scheduler_v0/  → Multi-processor scheduler (FCFS, RR, RR-AFF)
 ├── scheduler_v1.c  → Phase 1: Multiple processors, all policies
 ├── scheduler_v2.c  → Phase 2: FCFS with multi-processor requests
 ├── Makefile
 └── input/          → Workload files (homogeneous.txt, reverse.txt, etc.)
 
-🧩 Project 1 – Shell Scripting
+🧩 Project 1 – Passenger Management & CPU Simulation
+
+This project contains three main questions (ερωτήματα). Each question focuses on a different part of operating systems concepts: shell scripting, process synchronization, and CPU/memory simulation.
+
+❓ Question 1 – Shell Scripting (Passenger Management)
 
 File: erwthma1/processes_ipc.sh
 
-Simulates a ship evacuation drill by managing and analyzing passenger data.
+This Bash script simulates a ship evacuation drill by managing and analyzing passenger data.
 
 <details> <summary>💡 Features (click to expand)</summary>
-# Insert Data
+# Insert Data (manually or from CSV)
 ./processes_ipc.sh insert passenger_data.csv
 
-# Search Passenger
+# Search Passenger by first name, last name, or code
 ./processes_ipc.sh search "Christakos"
 
-# Update Passenger
+# Update Passenger (single field or full record)
 ./processes_ipc.sh update 123 fullname:"Sotiris Antoniou"
 
 # Display File (paginated)
 ./processes_ipc.sh display
 
-# Generate Reports
+# Generate Analytics Reports (awk, sed, grep)
 ./processes_ipc.sh reports
 
 </details>
-⚙️ Project 2 – Process Synchronization & Semaphores
+❓ Question 2 – Process Synchronization Using Semaphores
 
-Files: launch.c, passenger.c, ipc_utils.h, Makefile
+Files: erwthma2/launch.c, passenger.c, ipc_utils.h, Makefile
 
 Simulates passengers boarding limited-capacity lifeboats using threads and semaphores.
 
@@ -55,7 +59,7 @@ Each passenger → thread
 
 Each lifeboat → semaphore controlling seat availability
 
-Boats depart when full, then become available again
+Boats depart when full and then become available again
 
 </details> <details> <summary>💻 Build & Run</summary>
 cd PROJECT1/erwthma2
@@ -63,12 +67,14 @@ make
 ./launch
 
 
-Modify passenger count, boat count, or seats in launch.c
+Parameters (passenger count, boat count, seats) can be modified in launch.c.
 
 </details>
-🧮 Project 3 – CPU Scheduling & Memory Management Simulation
+❓ Question 3 – CPU Scheduling & Memory Management Simulation
 
 File: erwthma3/erwthma3.c
+
+Simulates Round Robin CPU scheduling and First Fit memory allocation.
 
 <details> <summary>💡 Details (click to expand)</summary>
 
@@ -85,11 +91,11 @@ gcc erwthma3.c -o scheduler
 ./scheduler
 
 </details>
-🧠 Project 2 (Second Assignment) – Multiprocessor Scheduler
+🧠 Project 2 – Multiprocessor Scheduler
 
-Directory: project2/scheduler_v0/scheduler/
+Directory: PROJECT2/scheduler_v0/scheduler/
 
-Simulates a Unix scheduler with multiple processors and multiple policies:
+Implements a Unix scheduler simulator with multiple processors and scheduling policies:
 
 FCFS – First Come First Served
 
@@ -97,12 +103,14 @@ RR – Round Robin
 
 RR-AFF – Round Robin with processor affinity
 
+Each version refines or extends the scheduler to test new features.
+
 <details> <summary>💻 Build</summary>
-cd project2/scheduler_v0/scheduler
+cd PROJECT2/scheduler_v0/scheduler
 make
 
 </details>
-🧭 How to Run the Scheduler
+❓ Scheduler Usage
 <details> <summary>Phase 1 – v1 Scheduler (Multiple Policies)</summary>
 # FCFS (1 processor)
 ./scheduler FCFS input/homogeneous.txt
@@ -113,7 +121,7 @@ make
 # RR-AFF (quantum = 500 ms)
 ./scheduler RR-AFF 500 input/homogeneous.txt
 
-# Reverse workload
+# Reverse workload examples
 ./scheduler FCFS input/reverse.txt
 ./scheduler RR 1000 input/reverse.txt
 ./scheduler RR-AFF 500 input/reverse.txt
@@ -135,7 +143,7 @@ Number of processors is defined in scheduler_v1.c as NUM_PROCESSORS.
 ./scheduler FCFS 2 input/reverse.txt
 
 
-Processes requesting more than available processors are skipped.
+Processes requesting more processors than available are skipped.
 
 </details>
 🧰 Full Commands Table
