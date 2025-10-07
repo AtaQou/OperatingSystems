@@ -1,6 +1,6 @@
-Operating Systems Projects 2024-2025
+🖥️ Operating Systems Projects 2024-2025
 
-Authors:
+👥 Authors
 
 Sotirios Antoniou (1067512)
 
@@ -14,7 +14,7 @@ PROJECT1/
 └── launch1.c      → Launcher helper file for testing
 
 project2/
-└── scheduler_v0/  → Multi-processor scheduler implementation (FCFS, RR, RR-AFF)
+└── scheduler_v0/  → Multi-processor scheduler (FCFS, RR, RR-AFF)
 ├── scheduler_v1.c  → Phase 1: Multiple processors, all policies
 ├── scheduler_v2.c  → Phase 2: FCFS with multi-processor requests
 ├── Makefile
@@ -24,60 +24,53 @@ project2/
 
 File: erwthma1/processes_ipc.sh
 
-This Bash script simulates a ship evacuation drill by managing and analyzing passenger data.
+Simulates a ship evacuation drill by managing and analyzing passenger data.
 
-Features:
-
-Insert Data (insert_data): Add new passengers manually or from a CSV file
-
+<details> <summary>💡 Features (click to expand)</summary>
+# Insert Data
 ./processes_ipc.sh insert passenger_data.csv
 
-
-Search Passenger (search_passenger): Search by first name, last name, or code
-
+# Search Passenger
 ./processes_ipc.sh search "Christakos"
 
-
-Update Passenger (update_passenger): Modify a single field or the whole record
-
+# Update Passenger
 ./processes_ipc.sh update 123 fullname:"Sotiris Antoniou"
 
-
-Display File (display_file): Paginated output
-
+# Display File (paginated)
 ./processes_ipc.sh display
 
-
-Generate Reports (generate_reports): Analytics files using awk, sed, grep
-
+# Generate Reports
 ./processes_ipc.sh reports
 
+</details>
 ⚙️ Project 2 – Process Synchronization & Semaphores
 
-Files: erwthma2/launch.c, erwthma2/passenger.c, erwthma2/ipc_utils.h, erwthma2/Makefile
+Files: launch.c, passenger.c, ipc_utils.h, Makefile
 
-Description:
+Simulates passengers boarding limited-capacity lifeboats using threads and semaphores.
 
-Simulates passengers boarding limited-capacity lifeboats during a ship evacuation using threads and semaphores.
+<details> <summary>💡 Concept (click to expand)</summary>
 
 Each passenger → thread
 
 Each lifeboat → semaphore controlling seat availability
 
-Boats depart when full and become available again
+Boats depart when full, then become available again
 
-Build & Run:
-
+</details> <details> <summary>💻 Build & Run</summary>
 cd PROJECT1/erwthma2
 make
 ./launch
 
 
-Parameters (passenger count, boat count, seats) can be modified in launch.c.
+Modify passenger count, boat count, or seats in launch.c
 
+</details>
 🧮 Project 3 – CPU Scheduling & Memory Management Simulation
 
 File: erwthma3/erwthma3.c
+
+<details> <summary>💡 Details (click to expand)</summary>
 
 Memory: 512 KB (1 KB blocks)
 
@@ -87,16 +80,16 @@ Scheduling: Round Robin (quantum = 3 ms)
 
 Memory Allocation: First Fit
 
-Build & Run:
-
+</details> <details> <summary>💻 Build & Run</summary>
 gcc erwthma3.c -o scheduler
 ./scheduler
 
+</details>
 🧠 Project 2 (Second Assignment) – Multiprocessor Scheduler
 
 Directory: project2/scheduler_v0/scheduler/
 
-Implements a Unix scheduler simulator for multiple processors and policies:
+Simulates a Unix scheduler with multiple processors and multiple policies:
 
 FCFS – First Come First Served
 
@@ -104,15 +97,13 @@ RR – Round Robin
 
 RR-AFF – Round Robin with processor affinity
 
-Each version refines or extends the scheduler to test new features.
-
-Build:
-
+<details> <summary>💻 Build</summary>
 cd project2/scheduler_v0/scheduler
 make
 
-🧭 How to Run the Scheduler (v1 & v2)
-Phase 1 – v1 Scheduler (Multiple Policies, Multiple Processors)
+</details>
+🧭 How to Run the Scheduler
+<details> <summary>Phase 1 – v1 Scheduler (Multiple Policies)</summary>
 # FCFS (1 processor)
 ./scheduler FCFS input/homogeneous.txt
 
@@ -122,15 +113,15 @@ Phase 1 – v1 Scheduler (Multiple Policies, Multiple Processors)
 # RR-AFF (quantum = 500 ms)
 ./scheduler RR-AFF 500 input/homogeneous.txt
 
-# Example with reverse workload
+# Reverse workload
 ./scheduler FCFS input/reverse.txt
 ./scheduler RR 1000 input/reverse.txt
 ./scheduler RR-AFF 500 input/reverse.txt
 
 
-Note: Number of processors is defined in the source (scheduler_v1.c) as NUM_PROCESSORS.
+Number of processors is defined in scheduler_v1.c as NUM_PROCESSORS.
 
-Phase 2 – v2 Scheduler (FCFS with Multi-Processor Requests)
+</details> <details> <summary>Phase 2 – v2 Scheduler (FCFS with Multi-Processor Requests)</summary>
 # FCFS, 4 processors, homogeneous workload
 ./scheduler FCFS 4 input/homogeneous.txt
 
@@ -144,10 +135,11 @@ Phase 2 – v2 Scheduler (FCFS with Multi-Processor Requests)
 ./scheduler FCFS 2 input/reverse.txt
 
 
-Each process may request multiple processors; processes requesting more than available are skipped.
+Processes requesting more than available processors are skipped.
 
+</details>
 🧰 Full Commands Table
-Scheduler Version	Policy	Quantum	Processors	Input File	Command
+Version	Policy	Quantum	Processors	Input File	Command
 v1	FCFS	–	1	homogeneous.txt	./scheduler FCFS input/homogeneous.txt
 v1	RR	1000	1	homogeneous.txt	./scheduler RR 1000 input/homogeneous.txt
 v1	RR-AFF	500	1	homogeneous.txt	./scheduler RR-AFF 500 input/homogeneous.txt
@@ -160,10 +152,10 @@ v2	FCFS	–	4	reverse.txt	./scheduler FCFS 4 input/reverse.txt
 v2	FCFS	–	2	reverse.txt	./scheduler FCFS 2 input/reverse.txt
 🏁 Notes
 
-All scripts and programs include comments explaining their logic.
+All scripts/programs include comments explaining their logic.
 
-Data files (e.g., passenger_data.csv) must be in the same directory as the scripts unless specified.
+Data files (e.g., passenger_data.csv) must be in the same directory as the scripts.
 
-Output and reports are automatically created in the respective directories.
+Output and reports are auto-generated in their respective directories.
 
 Tested under Linux (Ubuntu 22.04).
